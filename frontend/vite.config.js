@@ -7,8 +7,26 @@ export default defineConfig({
         host: true,
         port: 5173,
         proxy: {
+            // RAG API - route to RAG service on port 8000 (Docker service name)
+            '/api/rag': {
+                target: 'http://rag-service:8000',
+                changeOrigin: true,
+                secure: false,
+                configure: function (proxy, _options) {
+                    proxy.on('error', function (err, _req, _res) {
+                        console.log('RAG API proxy error', err);
+                    });
+                    proxy.on('proxyReq', function (proxyReq, req, _res) {
+                        console.log('Sending RAG Request to the Target:', req.method, req.url);
+                    });
+                    proxy.on('proxyRes', function (proxyRes, req, _res) {
+                        console.log('Received RAG Response from the Target:', proxyRes.statusCode, req.url);
+                    });
+                },
+            },
+            // All other API calls - route to lab manager backend (Docker service name)
             '/api': {
-                target: process.env.BACKEND_URL || 'http://localhost:3000',
+                target: 'http://lab-manager-dev:3000',
                 changeOrigin: true,
                 secure: false,
                 configure: function (proxy, _options) {
@@ -24,7 +42,7 @@ export default defineConfig({
                 },
             },
             '/health': {
-                target: 'http://localhost:3000',
+                target: 'http://lab-manager-dev:3000',
                 changeOrigin: true,
                 secure: false,
             },
